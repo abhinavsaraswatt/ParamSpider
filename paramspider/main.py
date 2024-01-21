@@ -3,7 +3,7 @@ import os
 import logging
 import colorama
 from colorama import Fore, Style
-from . import client  # Importing client from a module named "client"
+import client  # Importing client from a module named "client"
 from urllib.parse import urlparse, parse_qs, urlencode
 import os
 
@@ -139,30 +139,44 @@ def main():
     parser.add_argument("-s", "--stream", action="store_true", help="Stream URLs on the terminal.")
     parser.add_argument("--proxy", help="Set the proxy address for web requests.",default=None)
     parser.add_argument("-p", "--placeholder", help="placeholder for parameter values", default="FUZZ")
+    parser.add_argument("-c", "--clean", help="it only clean urls, not fetch. useful when urls already fetched from wbu")
     args = parser.parse_args()
 
-    if not args.domain and not args.list:
-        parser.error("Please provide either the -d option or the -l option.")
+    if args.clean:
+        with open(args.clean, "r") as f:
+            urls = [line for line in f.readlines() if line]
+            urls = list(set(urls))
+            extensions = HARDCODED_EXTENSIONS
+            cleaned_urls = clean_urls(urls, extensions, placeholder='FUZZ')
 
-    if args.domain and args.list:
-        parser.error("Please provide either the -d option or the -l option, not both.")
-
-    if args.list:
-        with open(args.list, "r") as f:
-            domains = [line.strip().lower().replace('https://', '').replace('http://', '') for line in f.readlines()]
-            domains = [domain for domain in domains if domain]  # Remove empty lines
-            domains = list(set(domains))  # Remove duplicates
+            with open('param_output.txt', 'w') as f:
+                for clean_url in cleaned_urls:
+                    f.write(clean_url + '\n');
+        pass
     else:
-        domain = args.domain
 
-    extensions = HARDCODED_EXTENSIONS
+        if not args.domain and not args.list:
+            parser.error("Please provide either the -d option or the -l option.")
 
-    if args.domain:
-        fetch_and_clean_urls(domain, extensions, args.stream, args.proxy, args.placeholder)
+        if args.domain and args.list:
+            parser.error("Please provide either the -d option or the -l option, not both.")
 
-    if args.list:
-        for domain in domains:
-            fetch_and_clean_urls(domain, extensions, args.stream,args.proxy, args.placeholder)
+        if args.list:
+            with open(args.list, "r") as f:
+                domains = [line.strip().lower().replace('https://', '').replace('http://', '') for line in f.readlines()]
+                domains = [domain for domain in domains if domain]  # Remove empty lines
+                domains = list(set(domains))  # Remove duplicates
+        else:
+            domain = args.domain
+
+        extensions = HARDCODED_EXTENSIONS
+
+        if args.domain:
+            fetch_and_clean_urls(domain, extensions, args.stream, args.proxy, args.placeholder)
+
+        if args.list:
+            for domain in domains:
+                fetch_and_clean_urls(domain, extensions, args.stream,args.proxy, args.placeholder)
 
 if __name__ == "__main__":
     main()
